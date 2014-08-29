@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.nuxeo.ecm.core.api.CoreSession;
 import org.nuxeo.ecm.csv.CSVImportLog.Status;
+import org.nuxeo.ecm.platform.tag.TagService;
 
 /**
  * @author <a href="mailto:troger@nuxeo.com">Thomas Roger</a>
@@ -30,7 +31,7 @@ import org.nuxeo.ecm.csv.CSVImportLog.Status;
 public interface CSVImporter {
 
     String launchImport(CoreSession session, String parentPath, File csvFile,
-            String csvFileName, CSVImporterOptions options);
+                        String csvFileName, CSVImporterOptions options, TagService tagService);
 
     CSVImportStatus getImportStatus(String id);
 

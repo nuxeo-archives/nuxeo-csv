@@ -20,6 +20,7 @@ package org.nuxeo.ecm.csv;
 import static org.nuxeo.ecm.csv.CSVImportLog.Status.ERROR;
 import static org.nuxeo.ecm.csv.Constants.CSV_NAME_COL;
 import static org.nuxeo.ecm.csv.Constants.CSV_TYPE_COL;
+import static org.nuxeo.ecm.csv.Constants.TAGS_COL;
 
 import java.io.File;
 import java.io.FileReader;
@@ -29,12 +30,7 @@ import java.io.Serializable;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -73,6 +69,7 @@ import org.nuxeo.ecm.core.work.AbstractWork;
 import org.nuxeo.ecm.csv.CSVImportLog.Status;
 import org.nuxeo.ecm.platform.ec.notification.service.NotificationService;
 import org.nuxeo.ecm.platform.ec.notification.service.NotificationServiceHelper;
+import org.nuxeo.ecm.platform.tag.TagService;
 import org.nuxeo.ecm.platform.types.TypeManager;
 import org.nuxeo.ecm.platform.ui.web.rest.api.URLPolicyService;
 import org.nuxeo.ecm.platform.url.DocumentViewImpl;
@@ -110,6 +107,8 @@ public class CSVImporterWork extends AbstractWork {
 
     protected CSVImporterOptions options;
 
+    protected TagService tagService;
+
     protected transient DateFormat dateformat;
 
     protected Date startDate;
@@ -122,7 +121,7 @@ public class CSVImporterWork extends AbstractWork {
 
     public CSVImporterWork(String repositoryName, String parentPath,
             String username, File csvFile, String csvFileName,
-            CSVImporterOptions options) {
+            CSVImporterOptions options, TagService tagService) {
         super(CSVImportId.create(repositoryName, parentPath, csvFile));
         setDocument(repositoryName, null);
         this.parentPath = parentPath;
@@ -130,6 +129,7 @@ public class CSVImporterWork extends AbstractWork {
         this.csvFile = csvFile;
         this.csvFileName = csvFileName;
         this.options = options;
+        this.tagService = tagService;
         startDate = new Date();
     }
 
@@ -286,22 +286,32 @@ public class CSVImporterWork extends AbstractWork {
             // skip this line
             return false;
         }
+        List<String> tags = extractTags(line, headerValues);
+        return createOrUpdateDocument(lineNumber, parentPath, name, type, values, tags);
+    }
 
-        return createOrUpdateDocument(lineNumber, parentPath, name, type,
-                values);
+    private List<String> extractTags(String[] line, String[] headerValues) {
+        List<String> tags = new ArrayList<String>();
+        for (int col = 0; col < headerValues.length; col++) {
+            if(headerValues[col].equals(TAGS_COL) && !line[col].equals("")){
+                tags.addAll(Arrays.asList(line[col].split(",")));
+                break;
+            }
+        }
+        return tags;
     }
 
     protected Map<String, Serializable> computePropertiesMap(long lineNumber,
             DocumentType docType, String[] headerValues, String[] line) {
         Map<String, Serializable> values = new HashMap<String, Serializable>();
+        Set<String> specialHeaderEntries = new HashSet<String>(Arrays.asList(CSV_NAME_COL, CSV_TYPE_COL, TAGS_COL));
         for (int col = 0; col < headerValues.length; col++) {
             String headerValue = headerValues[col];
             String lineValue = line[col];
             lineValue = lineValue.trim();
 
             String fieldName = headerValue;
-            if (!CSV_NAME_COL.equals(headerValue)
-                    && !CSV_TYPE_COL.equals(headerValue)) {
+            if (!specialHeaderEntries.contains(headerValue)) {
                 if (!docType.hasField(fieldName)) {
                     fieldName = fieldName.split(":")[1];
                 }
@@ -412,19 +422,25 @@ public class CSVImporterWork extends AbstractWork {
     }
 
     protected boolean createOrUpdateDocument(long lineNumber,
-            String parentPath, String name, String type,
-            Map<String, Serializable> properties) throws ClientException {
+                                             String parentPath, String name, String type,
+                                             Map<String, Serializable> properties, List<String> tags) throws ClientException {
         Path targetPath = new Path(parentPath).append(name);
         name = targetPath.lastSegment();
         parentPath = targetPath.removeLastSegments(1).toString();
         DocumentRef docRef = new PathRef(targetPath.toString());
+        boolean result;
         if (options.getCSVImporterDocumentFactory().exists(session, parentPath,
                 name, type, properties)) {
-            return updateDocument(lineNumber, docRef, properties);
+            result = updateDocument(lineNumber, docRef, properties);
         } else {
-            return createDocument(lineNumber, parentPath, name, type,
+            result = createDocument(lineNumber, parentPath, name, type,
                     properties);
         }
+        for (String tag : tags) {
+            DocumentModel document = session.getDocument(docRef);
+            tagService.tag(session, document.getId(), tag, username);
+        }
+        return result;
     }
 
     protected boolean createDocument(long lineNumber, String parentPath,

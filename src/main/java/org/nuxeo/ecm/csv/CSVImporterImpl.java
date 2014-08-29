@@ -27,6 +27,7 @@ import org.nuxeo.ecm.core.api.CoreSession;
 import org.nuxeo.ecm.core.work.api.Work;
 import org.nuxeo.ecm.core.work.api.Work.State;
 import org.nuxeo.ecm.core.work.api.WorkManager;
+import org.nuxeo.ecm.platform.tag.TagService;
 import org.nuxeo.runtime.api.Framework;
 
 /**
@@ -36,10 +37,10 @@ public class CSVImporterImpl implements CSVImporter {
 
     @Override
     public String launchImport(CoreSession session, String parentPath,
-            File csvFile, String csvFileName, CSVImporterOptions options) {
+                               File csvFile, String csvFileName, CSVImporterOptions options, TagService tagService) {
         CSVImporterWork work = new CSVImporterWork(session.getRepositoryName(),
                 parentPath, session.getPrincipal().getName(), csvFile,
-                csvFileName, options);
+                csvFileName, options, tagService);
         WorkManager workManager = Framework.getLocalService(WorkManager.class);
         workManager.schedule(work,
                 WorkManager.Scheduling.IF_NOT_RUNNING_OR_SCHEDULED);

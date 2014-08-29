@@ -39,6 +39,7 @@ import org.nuxeo.ecm.core.api.PathRef;
 import org.nuxeo.ecm.core.test.CoreFeature;
 import org.nuxeo.ecm.core.test.TransactionalFeature;
 import org.nuxeo.ecm.core.work.api.WorkManager;
+import org.nuxeo.ecm.platform.tag.TagService;
 import org.nuxeo.runtime.test.runner.Deploy;
 import org.nuxeo.runtime.test.runner.Features;
 import org.nuxeo.runtime.test.runner.FeaturesRunner;
@@ -54,7 +55,7 @@ import com.google.inject.Inject;
 @RunWith(FeaturesRunner.class)
 @Features({ TransactionalFeature.class, CoreFeature.class })
 @Deploy({ "org.nuxeo.ecm.csv", "org.nuxeo.runtime.datasource",
-        "org.nuxeo.ecm.platform.types.api", "org.nuxeo.ecm.platform.types.core" })
+        "org.nuxeo.ecm.platform.types.api", "org.nuxeo.ecm.platform.types.core", "org.nuxeo.ecm.platform.tag" })
 @LocalDeploy("org.nuxeo.ecm.csv:test-ui-types-contrib.xml")
 public class TestCSVImport {
 
@@ -69,6 +70,9 @@ public class TestCSVImport {
 
     @Inject
     protected CSVImporter csvImporter;
+
+    @Inject
+    protected TagService tagService;
 
     @Inject
     protected WorkManager workManager;
@@ -89,7 +93,7 @@ public class TestCSVImport {
         TransactionHelper.commitOrRollbackTransaction();
 
         String importId = csvImporter.launchImport(session, "/",
-                getCSVFile(DOCS_OK_CSV), DOCS_OK_CSV, options);
+                getCSVFile(DOCS_OK_CSV), DOCS_OK_CSV, options, tagService);
 
         workManager.awaitCompletion(10000, TimeUnit.SECONDS);
         TransactionHelper.startTransaction();
@@ -144,7 +148,7 @@ public class TestCSVImport {
         CSVImporterOptions options = new CSVImporterOptions.Builder().updateExisting(
                 false).build();
         String importId = csvImporter.launchImport(session, "/",
-                getCSVFile(DOCS_OK_CSV), DOCS_OK_CSV, options);
+                getCSVFile(DOCS_OK_CSV), DOCS_OK_CSV, options, tagService);
 
         workManager.awaitCompletion(10, TimeUnit.SECONDS);
         TransactionHelper.startTransaction();
@@ -178,7 +182,7 @@ public class TestCSVImport {
                 false).build();
         TransactionHelper.commitOrRollbackTransaction();
         String importId = csvImporter.launchImport(session, "/",
-                getCSVFile(DOCS_NOT_OK_CSV), DOCS_NOT_OK_CSV, options);
+                getCSVFile(DOCS_NOT_OK_CSV), DOCS_NOT_OK_CSV, options, tagService);
         workManager.awaitCompletion(10, TimeUnit.SECONDS);
         TransactionHelper.startTransaction();
 
@@ -224,7 +228,7 @@ public class TestCSVImport {
         TransactionHelper.commitOrRollbackTransaction();
         String importId = csvImporter.launchImport(session, "/",
                 getCSVFile(DOCS_WITH_FOLDERS_OK_CSV), DOCS_WITH_FOLDERS_OK_CSV,
-                options);
+                options, tagService);
         workManager.awaitCompletion(10, TimeUnit.SECONDS);
         TransactionHelper.startTransaction();
 

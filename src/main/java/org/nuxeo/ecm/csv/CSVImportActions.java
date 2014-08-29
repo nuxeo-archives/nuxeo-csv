@@ -32,6 +32,7 @@ import org.jboss.seam.annotations.Name;
 import org.jboss.seam.annotations.Observer;
 import org.jboss.seam.annotations.Scope;
 import org.nuxeo.ecm.core.api.CoreSession;
+import org.nuxeo.ecm.platform.tag.TagService;
 import org.nuxeo.ecm.platform.ui.web.api.NavigationContext;
 import org.nuxeo.ecm.webapp.helpers.EventNames;
 import org.nuxeo.runtime.api.Framework;
@@ -54,6 +55,9 @@ public class CSVImportActions implements Serializable {
 
     @In(create = true, required = false)
     protected transient NavigationContext navigationContext;
+
+    @In(create = true, required = false)
+    protected transient TagService tagService;
 
     protected File csvFile;
 
@@ -84,7 +88,7 @@ public class CSVImportActions implements Serializable {
             CSVImporter csvImporter = Framework.getLocalService(CSVImporter.class);
             csvImportId = csvImporter.launchImport(documentManager,
                     navigationContext.getCurrentDocument().getPathAsString(),
-                    csvFile, csvFileName, options);
+                    csvFile, csvFileName, options, tagService);
         }
     }
 
