@@ -18,12 +18,13 @@
 package org.nuxeo.ecm.csv;
 
 import java.io.File;
-import java.io.InputStream;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang.StringUtils;
 import org.jboss.seam.ScopeType;
 import org.jboss.seam.annotations.In;
 import org.jboss.seam.annotations.Install;
@@ -73,10 +74,8 @@ public class CSVImportActions implements Serializable {
 
     public void uploadListener(FileUploadEvent event) throws Exception {
         UploadedFile item = event.getUploadedFile();
-        // FIXME: check if this needs to be tracked for deletion
-        csvFile = File.createTempFile("FileManageActionsFile", null);
-        InputStream in = event.getUploadedFile().getInputStream();
-        org.nuxeo.common.utils.FileUtils.copyToFile(in, csvFile);
+        CSVImporter csvImporter = Framework.getLocalService(CSVImporter.class);
+        csvFile = csvImporter.prepareUploadedFile(item);
         csvFileName = FilenameUtils.getName(item.getName());
     }
 
@@ -123,6 +122,13 @@ public class CSVImportActions implements Serializable {
         }
         CSVImporter csvImporter = Framework.getLocalService(CSVImporter.class);
         return csvImporter.getImportResult(csvImportId);
+    }
+
+    public String getAcceptedTypes() {
+        CSVImporter csvImporter = Framework.getLocalService(CSVImporter.class);
+        Set<String> acceptedTypes = csvImporter.getAcceptedTypes();
+
+        return StringUtils.join(acceptedTypes, ',');
     }
 
     @Observer(EventNames.NAVIGATE_TO_DOCUMENT)

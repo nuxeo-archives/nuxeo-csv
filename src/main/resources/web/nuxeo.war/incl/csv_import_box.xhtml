@@ -31,7 +31,7 @@
               </p>
               <rich:fileUpload fileUploadListener="#{csvImportActions.uploadListener}"
                 maxFilesQuantity="1" immediateUpload="true"
-                acceptedTypes="csv"
+                acceptedTypes="#{csvImportActions.acceptedTypes}"
                 listHeight="60"
                 execute="@this"
                 locale="#{localeSelector.localeString}"

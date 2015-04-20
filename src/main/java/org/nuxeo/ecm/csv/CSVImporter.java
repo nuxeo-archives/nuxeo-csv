@@ -19,9 +19,12 @@ package org.nuxeo.ecm.csv;
 
 import java.io.File;
 import java.util.List;
+import java.util.Set;
 
+import org.nuxeo.ecm.core.api.ClientException;
 import org.nuxeo.ecm.core.api.CoreSession;
 import org.nuxeo.ecm.csv.CSVImportLog.Status;
+import org.richfaces.model.UploadedFile;
 
 /**
  * @author <a href="mailto:troger@nuxeo.com">Thomas Roger</a>
@@ -43,4 +46,18 @@ public interface CSVImporter {
     List<CSVImportLog> getLastImportLogs(String id, int max, Status... status);
 
     CSVImportResult getImportResult(String id);
+
+    /**
+     * Returns the accepted types for file upload.
+     * 
+     * @since 7.3
+     */
+    Set<String> getAcceptedTypes();
+
+    /**
+     * Prepares an uploaded file, before the actual import.
+     * 
+     * @since 7.3
+     */
+    File prepareUploadedFile(UploadedFile uploadedFile) throws ClientException;
 }

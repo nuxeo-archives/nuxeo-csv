@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<component name="org.nuxeo.ecm.csv.acceptedtypes">
+
+  <require>org.nuxeo.ecm.csv.CSVImporter</require>
+
+  <extension target="org.nuxeo.ecm.csv.CSVImporter" point="acceptedTypes">
+
+    <acceptedType type="csv" />
+    <acceptedType type="zip" />
+
+  </extension>
+
+</component>

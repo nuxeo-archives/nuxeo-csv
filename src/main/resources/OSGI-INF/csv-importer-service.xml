@@ -7,4 +7,19 @@
     <provide interface="org.nuxeo.ecm.csv.CSVImporter"/>
   </service>
 
+  <extension-point name="fileHandlers">
+    <documentation>
+      @since 7.3
+      @see org.nuxeo.ecm.csv.filehandler.CSVImportFileHandler
+    </documentation>
+    <object class="org.nuxeo.ecm.csv.descriptor.CSVFileHandlerDescriptor" />
+  </extension-point>
+
+  <extension-point name="acceptedTypes">
+    <documentation>
+      @since 7.3
+    </documentation>
+    <object class="org.nuxeo.ecm.csv.descriptor.AcceptedTypeDescriptor" />
+  </extension-point>
+
 </component>

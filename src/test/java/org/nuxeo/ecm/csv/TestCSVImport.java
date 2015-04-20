@@ -19,6 +19,7 @@ package org.nuxeo.ecm.csv;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -29,6 +30,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
@@ -91,6 +93,7 @@ public class TestCSVImport {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void shouldCreateAllDocuments() throws InterruptedException, ClientException, IOException {
         CSVImporterOptions options = CSVImporterOptions.DEFAULT_OPTIONS;
         TransactionHelper.commitOrRollbackTransaction();
@@ -156,7 +159,7 @@ public class TestCSVImport {
         expectedMap.put("arrayProp", null);
         resultMap.put("arrayProp", null);
         assertEquals(expectedMap, resultMap);
-        List<Map> resultMapList = (List<Map>) doc.getPropertyValue("complexTest:listItem");
+        List<Map<String, Object>> resultMapList = (List<Map<String, Object>>) doc.getPropertyValue("complexTest:listItem");
         assertEquals(2, resultMapList.size());
         resultMap = resultMapList.get(0);
         assertEquals("1", ((String[]) resultMap.get("arrayProp"))[0]);
@@ -341,6 +344,15 @@ public class TestCSVImport {
         assertTrue(session.exists(new PathRef("/myfile")));
         DocumentModel doc = session.getDocument(new PathRef("/myfile"));
         assertEquals("obsolete", doc.getCurrentLifeCycleState());
+    }
+
+    @Test
+    public void testGetAcceptedTypes() {
+        Set<String> acceptedTypes = csvImporter.getAcceptedTypes();
+        assertNotNull(acceptedTypes);
+        assertEquals(2, acceptedTypes.size());
+        assertTrue(acceptedTypes.contains("csv"));
+        assertTrue(acceptedTypes.contains("zip"));
     }
 
 }
