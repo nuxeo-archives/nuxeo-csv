@@ -4,7 +4,7 @@
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the GNU Lesser General Public License
  * (LGPL) version 2.1 which accompanies this distribution, and is available at
- * http://www.gnu.org/licenses/lgpl.html
+ * http://www.gnu.org/licenses/lgpl-2.1.html
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -33,7 +34,6 @@ import org.nuxeo.ecm.core.api.ClientException;
 import org.nuxeo.ecm.core.work.api.WorkManager;
 import org.nuxeo.ecm.csv.CSVImporterWork;
 import org.nuxeo.runtime.api.Framework;
-import org.richfaces.model.UploadedFile;
 
 /**
  * Handles ZIP files to prepare the import.
@@ -48,19 +48,17 @@ import org.richfaces.model.UploadedFile;
  * @since 7.3
  */
 public class CSVImportZipHandler implements CSVImportFileHandler {
+    private static final List<String> MIME_TYPES = Arrays.asList("application/zip", "application/x-zip", "application/x-zip-compressed");
+
     public CSVImportZipHandler() {
         super();
     }
 
     @Override
-    public boolean accept(UploadedFile uploadedFile, File file) {
-        if (uploadedFile == null) {
-            return false;
-        }
+    public boolean accept(File file, String name, String contentType) {
+        String csvFileName = FilenameUtils.getName(name);
 
-        String csvFileName = FilenameUtils.getName(uploadedFile.getName());
-
-        return "application/zip".equals(uploadedFile.getContentType()) || StringUtils.endsWithIgnoreCase(csvFileName, ".zip");
+        return MIME_TYPES.contains(contentType) || StringUtils.endsWithIgnoreCase(csvFileName, ".zip");
     }
 
     @Override
@@ -106,6 +104,10 @@ public class CSVImportZipHandler implements CSVImportFileHandler {
             Enumeration<? extends ZipEntry> entries = zip.entries();
             while (entries.hasMoreElements()) {
                 ZipEntry entry = entries.nextElement();
+                if (entry.getName().contains("..")) {
+                    continue;
+                }
+
                 File file = new File(csvFolder, entry.getName());
                 file.getParentFile().mkdirs();
                 if (!entry.isDirectory()) {

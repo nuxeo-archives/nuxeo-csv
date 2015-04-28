@@ -18,6 +18,7 @@
 package org.nuxeo.ecm.csv;
 
 import java.io.File;
+import java.io.InputStream;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
@@ -75,7 +76,13 @@ public class CSVImportActions implements Serializable {
     public void uploadListener(FileUploadEvent event) throws Exception {
         UploadedFile item = event.getUploadedFile();
         CSVImporter csvImporter = Framework.getLocalService(CSVImporter.class);
-        csvFile = csvImporter.prepareUploadedFile(item);
+
+        // FIXME: check if this needs to be tracked for deletion
+        csvFile = File.createTempFile("FileManageActionsFile", null);
+        InputStream in = item.getInputStream();
+        org.nuxeo.common.utils.FileUtils.copyToFile(in, csvFile);
+
+        csvFile = csvImporter.prepareUploadedFile(csvFile, item.getName(), item.getContentType());
         csvFileName = FilenameUtils.getName(item.getName());
     }
 

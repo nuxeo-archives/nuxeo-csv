@@ -4,7 +4,7 @@
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the GNU Lesser General Public License
  * (LGPL) version 2.1 which accompanies this distribution, and is available at
- * http://www.gnu.org/licenses/lgpl.html
+ * http://www.gnu.org/licenses/lgpl-2.1.html
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -42,6 +42,13 @@ public class CSVFileHandlerDescriptorComparator implements Comparator<CSVFileHan
             return fileHandler1 == null ? -1 : 1;
         }
 
-        return ObjectUtils.compare(fileHandler1.getOrder(), fileHandler2.getOrder());
+        int compare = ObjectUtils.compare(fileHandler1.getOrder(), fileHandler2.getOrder());
+
+        if (compare == 0) {
+            // deterministic sort, if two descriptors have the same order
+            return fileHandler1.hashCode() - fileHandler2.hashCode();
+        }
+
+        return compare;
     }
 }

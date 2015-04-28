@@ -24,7 +24,6 @@ import java.util.Set;
 import org.nuxeo.ecm.core.api.ClientException;
 import org.nuxeo.ecm.core.api.CoreSession;
 import org.nuxeo.ecm.csv.CSVImportLog.Status;
-import org.richfaces.model.UploadedFile;
 
 /**
  * @author <a href="mailto:troger@nuxeo.com">Thomas Roger</a>
@@ -56,8 +55,15 @@ public interface CSVImporter {
 
     /**
      * Prepares an uploaded file, before the actual import.
+     * <p>
+     * It involves the transformation of the uploaded file into a CSV file.
+     * For example, if a ZIP file is uploaded, it has to be unzipped,
+     * and the corresponding CSV file returned by the method.
+     * <p>
+     * {@link #launchImport(CoreSession, String, File, String, CSVImporterOptions)}
+     * can then be called.
      * 
      * @since 7.3
      */
-    File prepareUploadedFile(UploadedFile uploadedFile) throws ClientException;
+    File prepareUploadedFile(File uploadedFile, String name, String contentType) throws ClientException;
 }

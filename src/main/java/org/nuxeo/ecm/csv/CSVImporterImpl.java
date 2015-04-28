@@ -18,18 +18,16 @@
 package org.nuxeo.ecm.csv;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.nuxeo.ecm.core.api.ClientException;
 import org.nuxeo.ecm.core.api.CoreSession;
 import org.nuxeo.ecm.core.work.api.Work;
@@ -38,45 +36,66 @@ import org.nuxeo.ecm.core.work.api.WorkManager;
 import org.nuxeo.ecm.csv.descriptor.AcceptedTypeDescriptor;
 import org.nuxeo.ecm.csv.descriptor.CSVFileHandlerDescriptor;
 import org.nuxeo.ecm.csv.descriptor.CSVFileHandlerDescriptorComparator;
+import org.nuxeo.ecm.csv.registry.AcceptedTypeRegistry;
+import org.nuxeo.ecm.csv.registry.FileHandlerRegistry;
 import org.nuxeo.runtime.api.Framework;
+import org.nuxeo.runtime.model.ComponentContext;
 import org.nuxeo.runtime.model.ComponentInstance;
 import org.nuxeo.runtime.model.DefaultComponent;
-import org.richfaces.model.UploadedFile;
 
 /**
  * @since 5.7
  */
 public class CSVImporterImpl extends DefaultComponent implements CSVImporter {
+    private static final Log LOG = LogFactory.getLog(CSVImporterImpl.class);
+
     private static final String FILE_HANDLERS_EP = "fileHandlers";
 
     private static final String ACCEPTED_TYPES_EP = "acceptedTypes";
 
-    private final Map<String, CSVFileHandlerDescriptor> fileHandlers = new HashMap<>();
+    private FileHandlerRegistry fileHandlerRegistry;
 
-    private final Set<String> acceptedTypes = new HashSet<>();
+    private AcceptedTypeRegistry acceptedTypeRegistry;
 
     public CSVImporterImpl() {
         super();
     }
 
     @Override
+    public void activate(ComponentContext context) {
+        fileHandlerRegistry = new FileHandlerRegistry();
+        acceptedTypeRegistry = new AcceptedTypeRegistry();
+    }
+
+    @Override
+    public void deactivate(ComponentContext context) {
+        fileHandlerRegistry = null;
+        acceptedTypeRegistry = null;
+    }
+
+    @Override
     public void registerContribution(Object contribution, String extensionPoint, ComponentInstance contributor) {
         if (FILE_HANDLERS_EP.equals(extensionPoint) && contribution instanceof CSVFileHandlerDescriptor) {
             CSVFileHandlerDescriptor descriptor = (CSVFileHandlerDescriptor) contribution;
-            String id = descriptor.getId();
-            if (descriptor.getEnabled()) {
-                fileHandlers.put(id, descriptor);
-            } else {
-                fileHandlers.remove(id);
-            }
+            fileHandlerRegistry.addContribution(descriptor);
         } else if (ACCEPTED_TYPES_EP.equals(extensionPoint) && contribution instanceof AcceptedTypeDescriptor) {
             AcceptedTypeDescriptor descriptor = (AcceptedTypeDescriptor) contribution;
-            String type = descriptor.getType();
-            if (descriptor.getEnabled()) {
-                acceptedTypes.add(type);
-            } else {
-                acceptedTypes.remove(type);
-            }
+            acceptedTypeRegistry.addContribution(descriptor);
+        } else {
+            LOG.warn("Unknown extension point " + extensionPoint);
+        }
+    }
+
+    @Override
+    public void unregisterContribution(Object contribution, String extensionPoint, ComponentInstance contributor) {
+        if (FILE_HANDLERS_EP.equals(extensionPoint) && contribution instanceof CSVFileHandlerDescriptor) {
+            CSVFileHandlerDescriptor descriptor = (CSVFileHandlerDescriptor) contribution;
+            fileHandlerRegistry.removeContribution(descriptor);
+        } else if (ACCEPTED_TYPES_EP.equals(extensionPoint) && contribution instanceof AcceptedTypeDescriptor) {
+            AcceptedTypeDescriptor descriptor = (AcceptedTypeDescriptor) contribution;
+            acceptedTypeRegistry.removeContribution(descriptor);
+        } else {
+            LOG.warn("Unknown extension point " + extensionPoint);
         }
     }
 
@@ -163,32 +182,28 @@ public class CSVImporterImpl extends DefaultComponent implements CSVImporter {
 
     @Override
     public Set<String> getAcceptedTypes() {
+        Set<String> acceptedTypes = new HashSet<>();
+        for (AcceptedTypeDescriptor acceptedType : acceptedTypeRegistry.getAcceptedTypes()) {
+            acceptedTypes.add(acceptedType.getType());
+        }
+
         return acceptedTypes;
     }
 
     @Override
-    public File prepareUploadedFile(UploadedFile uploadedFile) throws ClientException {
-        try {
-            // FIXME: check if this needs to be tracked for deletion
-            File csvFile = File.createTempFile("FileManageActionsFile", null);
-            InputStream in = uploadedFile.getInputStream();
-            org.nuxeo.common.utils.FileUtils.copyToFile(in, csvFile);
-
-            for (CSVFileHandlerDescriptor fileHandler : getFileHandlers()) {
-                if (fileHandler.getFileHandler().accept(uploadedFile, csvFile)) {
-                    return fileHandler.getFileHandler().handle(csvFile);
-                }
+    public File prepareUploadedFile(File uploadedFile, String name, String contentType) throws ClientException {
+        for (CSVFileHandlerDescriptor fileHandler : getFileHandlers()) {
+            if (fileHandler.getFileHandler().accept(uploadedFile, name, contentType)) {
+                return fileHandler.getFileHandler().handle(uploadedFile);
             }
-
-            return csvFile;
-        } catch (IOException e) {
-            throw new ClientException("Failed to copy uploaded file", e);
         }
+
+        return uploadedFile;
     }
 
     protected Set<CSVFileHandlerDescriptor> getFileHandlers() {
         Set<CSVFileHandlerDescriptor> sortedFileHandlers = new TreeSet<>(CSVFileHandlerDescriptorComparator.INSTANCE);
-        sortedFileHandlers.addAll(fileHandlers.values());
+        sortedFileHandlers.addAll(fileHandlerRegistry.getFileHandlers());
 
         return sortedFileHandlers;
     }

@@ -4,7 +4,7 @@
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the GNU Lesser General Public License
  * (LGPL) version 2.1 which accompanies this distribution, and is available at
- * http://www.gnu.org/licenses/lgpl.html
+ * http://www.gnu.org/licenses/lgpl-2.1.html
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -67,5 +67,32 @@ public class CSVFileHandlerDescriptor {
 
     public Integer getOrder() {
         return order;
+    }
+
+    @Override
+    public CSVFileHandlerDescriptor clone() {
+        CSVFileHandlerDescriptor clone = new CSVFileHandlerDescriptor();
+
+        clone.id = id;
+        clone.clazz = clazz;
+        clone.enabled = enabled;
+        clone.order = order;
+
+        return clone;
+    }
+
+    public void merge(CSVFileHandlerDescriptor other) {
+        if (other.id != null) {
+            id = other.id;
+        }
+        if (other.clazz != null) {
+            clazz = other.clazz;
+        }
+        if (other.enabled != null) {
+            enabled = other.enabled;
+        }
+        if (other.order != null) {
+            order = other.order;
+        }
     }
 }
