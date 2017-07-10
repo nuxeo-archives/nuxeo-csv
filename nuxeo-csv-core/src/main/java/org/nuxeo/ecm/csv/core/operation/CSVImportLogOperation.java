@@ -19,6 +19,7 @@
 package org.nuxeo.ecm.csv.core.operation;
 
 import java.util.List;
+import org.apache.commons.lang.StringUtils;
 
 import org.nuxeo.ecm.automation.core.Constants;
 import org.nuxeo.ecm.automation.core.annotations.Context;
@@ -30,7 +31,7 @@ import org.nuxeo.ecm.csv.core.CSVImporter;
 import org.nuxeo.runtime.api.Framework;
 
 /**
- * @since 9.1
+ * @since 9.3
  */
 @Operation(id = CSVImportLogOperation.ID, category = Constants.CAT_DOCUMENT, label = "CSVImportLog")
 public class CSVImportLogOperation {
@@ -42,7 +43,7 @@ public class CSVImportLogOperation {
 
     @OperationMethod
     public List<CSVImportLog> getLog(String importID) {
-        if (importID == null || importID.isEmpty()) {
+        if (StringUtils.isEmpty(importID)) {
             return null;
         }
         CSVImporter csvImporter = Framework.getService(CSVImporter.class);
