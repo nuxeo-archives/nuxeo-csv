@@ -71,6 +71,9 @@ import org.nuxeo.ecm.core.api.DocumentRef;
 import org.nuxeo.ecm.core.api.NuxeoException;
 import org.nuxeo.ecm.core.api.NuxeoPrincipal;
 import org.nuxeo.ecm.core.api.PathRef;
+import org.nuxeo.ecm.core.blob.BlobInfo;
+import org.nuxeo.ecm.core.blob.BlobManager;
+import org.nuxeo.ecm.core.blob.BlobProvider;
 import org.nuxeo.ecm.core.query.sql.NXQL;
 import org.nuxeo.ecm.core.schema.DocumentType;
 import org.nuxeo.ecm.core.schema.SchemaManager;
@@ -92,6 +95,7 @@ import org.nuxeo.ecm.core.work.api.WorkManager;
 import org.nuxeo.ecm.csv.core.CSVImportLog.Status;
 import org.nuxeo.ecm.platform.ec.notification.NotificationEventListener;
 import org.nuxeo.ecm.platform.ec.notification.service.NotificationServiceHelper;
+import org.nuxeo.ecm.platform.mimetype.service.MimetypeRegistryService;
 import org.nuxeo.ecm.platform.types.TypeManager;
 import org.nuxeo.ecm.platform.url.api.DocumentViewCodecManager;
 import org.nuxeo.ecm.platform.url.codec.api.DocumentViewCodec;
@@ -519,7 +523,7 @@ public class CSVImporterWork extends TransientStoreWork {
                 } catch (ParseException | NumberFormatException | IOException e) {
                     logError(lineNumber, "Unable to convert field '%s' with value '%s'",
                             LABEL_CSV_IMPORTER_CANNOT_CONVERT_FIELD_VALUE, headerValue, stringValue);
-                    log.debug(e, e);
+                    log.error(e, e);
                 }
             }
         } else {
@@ -536,6 +540,28 @@ public class CSVImporterWork extends TransientStoreWork {
      * @since 9.3
      */
     protected Blob createBlobFromFilePath(String fileRelativePath) throws IOException {
+
+        if (fileRelativePath.indexOf(':')>0) {
+            String segment[] = fileRelativePath.split(":");
+            BlobManager blobManager = Framework.getService(BlobManager.class);
+            BlobProvider blobProvider = blobManager.getBlobProvider(segment[0]);
+            if (blobProvider != null) {
+                BlobInfo info = new BlobInfo();
+                info.key = fileRelativePath;
+                info.filename = segment[segment.length-1];
+                //info.mimeType = Framework.getService(MimetypeRegistryService.class).getMimetypeFromFilename(info.filename);
+                Blob blob = blobProvider.readBlob(info);
+                if (blob == null) {
+                    log.error("No blob : "+info.key);
+                }
+                return blob;
+            } else {
+                log.error("No blob provider: "+segment[0]);
+            }
+        } else {
+            log.error("Regular file: "+fileRelativePath);
+        }
+
         String blobsFolderPath = Framework.getProperty(NUXEO_CSV_BLOBS_FOLDER);
         String path = FilenameUtils.normalize(blobsFolderPath + "/" + fileRelativePath);
         File file = new File(path);
